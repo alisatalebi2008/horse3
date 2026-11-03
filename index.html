@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ثبت‌نام اسب در همایش اسب‌سواری</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#f6f1e8;--card:#fffdf9;--ink:#2b2118;--muted:#7a6a58;--accent:#8a4b1f;--accent-ink:#fff;--line:#e2d6c3;--err:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1510;--card:#261d16;--ink:#f1e8da;--muted:#b3a38f;--accent:#d08a52;--accent-ink:#1b1510;--line:#3b2e23;--err:#ff8a80}}
+:root[data-theme="dark"]{--bg:#1b1510;--card:#261d16;--ink:#f1e8da;--muted:#b3a38f;--accent:#d08a52;--accent-ink:#1b1510;--line:#3b2e23;--err:#ff8a80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Vazirmatn",Tahoma,sans-serif;line-height:1.8}
+.wrap{max-width:640px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.5rem;font-weight:800;margin:8px 0 4px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+.card h2{font-size:1.05rem;margin:0 0 12px;color:var(--accent)}
+label{display:block;font-size:.9rem;margin:10px 0 4px}
+input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+input.bad{border-color:var(--err)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){.row{grid-template-columns:1fr}}
+.horse{border:1px dashed var(--line);border-radius:12px;padding:12px;margin-top:12px}
+.horse b{color:var(--accent)}
+.total{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.total strong{font-size:1.25rem;color:var(--accent)}
+button{width:100%;padding:14px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:800;font-size:1.05rem;cursor:pointer;margin-top:8px}
+button.alt{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.err{color:var(--err);font-size:.85rem;min-height:1.2em;margin-top:6px}
+.note{font-size:.82rem;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+td{padding:6px 4px;border-bottom:1px solid var(--line)}
+td:first-child{color:var(--muted);white-space:nowrap}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🐎 ثبت‌نام اسب در همایش اسب‌سواری</h1>
+  <p class="sub">مشخصات خود و اسب‌هایتان را وارد کنید و هزینه ثبت‌نام را به‌صورت آنلاین بپردازید.</p>
+
+  <form id="form" novalidate>
+    <div class="card">
+      <h2>مشخصات مالک</h2>
+      <label for="owner">نام مالک</label>
+      <input id="owner" autocomplete="name">
+      <div class="row">
+        <div><label for="city">شهر</label><input id="city"></div>
+        <div><label for="phone">شماره تماس</label><input id="phone" type="tel" inputmode="tel" dir="ltr" style="text-align:right"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>تعداد اسب</h2>
+      <label for="count">تعداد اسب‌هایی که ثبت‌نام می‌کنید</label>
+      <input id="count" type="number" min="1" max="20" value="1" inputmode="numeric">
+      <div id="horses"></div>
+    </div>
+
+    <div class="card">
+      <div class="total"><span>هزینه هر اسب: ۳٬۰۰۰٬۰۰۰ تومان</span></div>
+      <div class="total" style="margin-top:8px"><span>مبلغ قابل پرداخت</span><strong id="total">۳٬۰۰۰٬۰۰۰ تومان</strong></div>
+    </div>
+
+    <div class="err" id="error" role="alert"></div>
+    <button type="submit">بررسی و ادامه به پرداخت</button>
+  </form>
+
+  <div id="summary" class="card hidden">
+    <h2>تأیید نهایی</h2>
+    <div id="summaryBody"></div>
+    <button id="pay" type="button">پرداخت آنلاین</button>
+    <button id="back" type="button" class="alt">ویرایش اطلاعات</button>
+    <p class="note" id="payNote"></p>
+  </div>
+</div>
+
+<script>
+// ===== تنظیمات =====
+// آدرس سرور شما که درخواست پرداخت را به درگاه (مثلاً زرین‌پال) می‌فرستد.
+// تا زمانی که این مقدار خالی است، دکمه پرداخت فقط حالت نمایشی دارد.
+var PAYMENT_ENDPOINT = "";
+var PRICE_PER_HORSE = 3000000; // تومان
+
+var $ = function(id){return document.getElementById(id)};
+var fa = function(n){return Number(n).toLocaleString("fa-IR")};
+var data = null;
+
+function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
+
+function renderHorses(){
+  var n = Math.max(1, Math.min(20, parseInt($("count").value,10) || 1));
+  var box = $("horses");
+  var old = [].map.call(box.querySelectorAll(".horse"), function(h){
+    return [].map.call(h.querySelectorAll("input"), function(i){return i.value});
+  });
+  box.innerHTML = "";
+  for (var i=0;i<n;i++){
+    var v = old[i] || ["","",""];
+    var el = document.createElement("div");
+    el.className = "horse";
+    el.innerHTML = '<b>اسب ' + fa(i+1) + '</b>' +
+      '<label>نام اسب</label><input data-k="name">' +
+      '<div class="row"><div><label>نام پدر اسب</label><input data-k="sire"></div>' +
+      '<div><label>نام مادر اسب</label><input data-k="dam"></div></div>';
+    var ins = el.querySelectorAll("input");
+    ins[0].value=v[0]||""; ins[1].value=v[1]||""; ins[2].value=v[2]||"";
+    box.appendChild(el);
+  }
+  $("total").textContent = fa(n * PRICE_PER_HORSE) + " تومان";
+}
+$("count").addEventListener("input", renderHorses);
+renderHorses();
+
+$("form").addEventListener("submit", function(e){
+  e.preventDefault();
+  var bad = false, ins = $("form").querySelectorAll("input");
+  [].forEach.call(ins, function(i){
+    var empty = !String(i.value).trim();
+    i.classList.toggle("bad", empty); if (empty) bad = true;
+  });
+  if (bad){ $("error").textContent = "لطفاً همه فیلدها را پر کنید."; return; }
+  $("error").textContent = "";
+  var horses = [].map.call($("horses").querySelectorAll(".horse"), function(h){
+    var x = h.querySelectorAll("input");
+    return {name:x[0].value.trim(), sire:x[1].value.trim(), dam:x[2].value.trim()};
+  });
+  data = {owner:$("owner").value.trim(), city:$("city").value.trim(), phone:$("phone").value.trim(),
+          horses:horses, count:horses.length, amount:horses.length*PRICE_PER_HORSE};
+  var h = '<table><tr><td>مالک</td><td>'+esc(data.owner)+'</td></tr>' +
+          '<tr><td>شهر</td><td>'+esc(data.city)+'</td></tr>' +
+          '<tr><td>تماس</td><td dir="ltr" style="text-align:right">'+esc(data.phone)+'</td></tr></table>';
+  data.horses.forEach(function(x,i){
+    h += '<p style="margin:12px 0 4px"><b>اسب '+fa(i+1)+': '+esc(x.name)+'</b></p>' +
+         '<table><tr><td>پدر</td><td>'+esc(x.sire)+'</td></tr><tr><td>مادر</td><td>'+esc(x.dam)+'</td></tr></table>';
+  });
+  h += '<p class="total" style="margin-top:14px"><span>مبلغ قابل پرداخت</span><strong>'+fa(data.amount)+' تومان</strong></p>';
+  $("summaryBody").innerHTML = h;
+  $("form").classList.add("hidden"); $("summary").classList.remove("hidden");
+  $("payNote").textContent = ""; window.scrollTo(0,0);
+});
+
+$("back").addEventListener("click", function(){
+  $("summary").classList.add("hidden"); $("form").classList.remove("hidden");
+});
+
+$("pay").addEventListener("click", function(){
+  if (!PAYMENT_ENDPOINT){
+    $("payNote").textContent = "نسخه نمایشی: درگاه پرداخت هنوز متصل نشده است. پس از اتصال به سرور، این دکمه کاربر را به درگاه هدایت می‌کند.";
+    return;
+  }
+  $("pay").disabled = true;
+  fetch(PAYMENT_ENDPOINT, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)})
+    .then(function(r){return r.json()})
+    .then(function(j){ if (j && j.paymentUrl) location.href = j.paymentUrl; else throw new Error("no url"); })
+    .catch(function(){ $("pay").disabled=false; $("payNote").textContent = "خطا در اتصال به درگاه. دوباره تلاش کنید."; });
+});
+</script>
+</body>
+</html>
